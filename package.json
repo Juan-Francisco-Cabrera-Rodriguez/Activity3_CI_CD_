@@ -7,10 +7,9 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
     "pretest": "cross-env NODE_ENV=test jest --clearCache",
-    "lint": "eslint . --ext .js,.ts",
-    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --coverage --ci"
+    "lint": "eslint . --ext .js,.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,4 +28,3 @@
     "supertest": "^6.2.4"
   }
 }
-
