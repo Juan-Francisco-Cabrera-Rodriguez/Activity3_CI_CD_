@@ -9,58 +9,58 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20]
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: mypassword
-          MYSQL_DATABASE: companydb
-          MYSQL_USER: fazt
-          MYSQL_PASSWORD: faztpassword
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.DB_DATABASE }}
+          MYSQL_USER: ${{ secrets.DB_USER }}
+          MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -u fazt -pfaztpassword"
+          --health-cmd="mysqladmin ping -h localhost -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }}"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
     steps:
-                - name: Run tests
-                  env:
-                    PORT: 3000
-                    DB_HOST: 127.0.0.1
-                    DB_USER: fazt
-                    DB_PASSWORD: faztpassword
-                    DB_DATABASE: companydb
-                    DB_PORT: 3306
-                  run: npm run test
-            - name: Initialize database
-              run: |
-                mysql -h 127.0.0.1 -u fazt -pfaztpassword companydb < db/database.sql
-        - name: Wait for MySQL to be ready
-          run: |
-            echo "Waiting for MySQL..."
-            until mysql -h 127.0.0.1 -u fazt -pfaztpassword -e "SELECT 1"; do
-              sleep 3
-            done
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
-        cache: 'npm'
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Install dependencies
-      run: npm install
+      - name: Run linter
+        run: npm run lint
 
-    - name: Lint
-      run: npm run lint
+      - name: Wait for MySQL to be ready
+        run: |
+          echo "Waiting for MySQL..."
+          until mysql -h 127.0.0.1 -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} -e "SELECT 1"; do
+            sleep 3
+          done
 
-    - name: Run tests
-      run: npm run test
+      - name: Initialize database
+        run: |
+          mysql -h 127.0.0.1 -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} ${{ secrets.DB_DATABASE }} < db/database.sql
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
